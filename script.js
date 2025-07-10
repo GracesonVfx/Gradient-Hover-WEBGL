@@ -100,30 +100,122 @@ const geometry = new THREE.PlaneGeometry(2, 2);
 const fluidPlane = new THREE.Mesh(geometry, fluidMaterial);
 const displayPlane = new THREE.Mesh(geometry, displayMaterial);
 
+// Replace your existing mouse event handlers with this enhanced version
+
 let mouseX = 0,
   mouseY = 0;
 let prevMouseX = 0,
   prevMouseY = 0;
 let lastMoveTime = 0;
+let isInteracting = false;
 
-document.addEventListener("mousemove", (e) => {
+// Helper function to get coordinates from mouse or touch event
+function getEventCoords(e) {
   const rect = gradientCanvas.getBoundingClientRect();
+  let clientX, clientY;
+  
+  if (e.touches && e.touches.length > 0) {
+    // Touch event
+    clientX = e.touches[0].clientX;
+    clientY = e.touches[0].clientY;
+  } else {
+    // Mouse event
+    clientX = e.clientX;
+    clientY = e.clientY;
+  }
+  
+  return {
+    x: clientX - rect.left,
+    y: rect.height - (clientY - rect.top)
+  };
+}
+
+// Helper function to update mouse/touch position
+function updatePosition(e) {
+  const coords = getEventCoords(e);
   prevMouseX = mouseX;
   prevMouseY = mouseY;
-  mouseX = e.clientX - rect.left;
-  mouseY = rect.height - (e.clientY - rect.top);
+  mouseX = coords.x;
+  mouseY = coords.y;
   lastMoveTime = performance.now();
+  
   fluidMaterial.uniforms.iMouse.value.set(
     mouseX,
     mouseY,
     prevMouseX,
     prevMouseY
   );
+}
+
+// Mouse Events
+document.addEventListener("mousemove", (e) => {
+  if (!isInteracting) return;
+  updatePosition(e);
+});
+
+document.addEventListener("mousedown", (e) => {
+  isInteracting = true;
+  updatePosition(e);
+});
+
+document.addEventListener("mouseup", () => {
+  isInteracting = false;
+  fluidMaterial.uniforms.iMouse.value.set(0, 0, 0, 0);
 });
 
 document.addEventListener("mouseleave", () => {
+  isInteracting = false;
   fluidMaterial.uniforms.iMouse.value.set(0, 0, 0, 0);
 });
+
+// Touch Events
+document.addEventListener("touchstart", (e) => {
+  e.preventDefault(); // Prevent scrolling
+  isInteracting = true;
+  updatePosition(e);
+}, { passive: false });
+
+document.addEventListener("touchmove", (e) => {
+  e.preventDefault(); // Prevent scrolling
+  if (!isInteracting) return;
+  updatePosition(e);
+}, { passive: false });
+
+document.addEventListener("touchend", (e) => {
+  e.preventDefault();
+  isInteracting = false;
+  fluidMaterial.uniforms.iMouse.value.set(0, 0, 0, 0);
+}, { passive: false });
+
+document.addEventListener("touchcancel", (e) => {
+  e.preventDefault();
+  isInteracting = false;
+  fluidMaterial.uniforms.iMouse.value.set(0, 0, 0, 0);
+}, { passive: false });
+
+// Optional: Multi-touch support (for more advanced interactions)
+document.addEventListener("touchstart", (e) => {
+  if (e.touches.length > 1) {
+    // Handle multi-touch if needed
+    // You could create multiple fluid sources or different effects
+  }
+}, { passive: false });
+
+// Optional: Add CSS to prevent text selection and improve touch experience
+const style = document.createElement('style');
+style.textContent = `
+  .gradient-canvas {
+    touch-action: none;
+    user-select: none;
+    -webkit-user-select: none;
+    -webkit-touch-callout: none;
+  }
+  
+  .gradient-canvas canvas {
+    touch-action: none;
+  }
+`;
+document.head.appendChild(style);
 
 function animate() {
   requestAnimationFrame(animate);
