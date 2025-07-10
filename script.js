@@ -217,6 +217,25 @@ style.textContent = `
 `;
 document.head.appendChild(style);
 
+document.addEventListener("mousemove", (e) => {
+  const rect = gradientCanvas.getBoundingClientRect();
+  prevMouseX = mouseX;
+  prevMouseY = mouseY;
+  mouseX = e.clientX - rect.left;
+  mouseY = rect.height - (e.clientY - rect.top);
+  lastMoveTime = performance.now();
+  fluidMaterial.uniforms.iMouse.value.set(
+    mouseX,
+    mouseY,
+    prevMouseX,
+    prevMouseY
+  );
+});
+
+document.addEventListener("mouseleave", () => {
+  fluidMaterial.uniforms.iMouse.value.set(0, 0, 0, 0);
+});
+
 function animate() {
   requestAnimationFrame(animate);
   const time = performance.now() * 0.001;
